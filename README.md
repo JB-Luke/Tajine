@@ -2,8 +2,10 @@
 
 ## Purpose
 
-This script provides a first attempt to automate the post-processing of acoustic measurements performed with the sine sweep technique.
-Traditional workflows, such as the use of Aurora plugins in Adobe Audition 3.0, are now obsolete, requiring many manual steps. This makes the process slow and highly prone to user errors.
+This script provides post-processing of acoustic measurements performed with the sine sweep technique.
+The traditional workflows, such as the use of a DAW (like Adobe Audition 3.0) alongside acoustic elaboration plugins (like Aurora) are cumersome and require many manual steps which highly prone to user errors.
+
+The main purpose of this script is to embrace all the manual step leaving to the user just few manual checks which simplify the procedure, accelerate the elaboration but still leave control to the operator.
 
 ## Workflow
 
@@ -31,6 +33,4 @@ Traditional workflows, such as the use of Aurora plugins in Adobe Audition 3.0, 
 
 -  the user is asked to perform a visual check of the input file audio (sweep recording) plot 
 - the user is asked to perform a visual check of the found Impulse Response and its trimmed version. 
-
-## CHANGELOG
 

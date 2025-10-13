@@ -30,16 +30,22 @@ binDir = 'BINAURAL';
 monoCH = 7;
 monoDir = 'MONOAURAL';
 
-% Create output folder if it does not exist
+% Create output folders
 if ~exist(outputFolder, 'dir')
     mkdir(outputFolder);
 end
-if ~exist(fullfile(outputFolder,'IRs'), 'dir')
-    mkdir(fullfile(outputFolder,'IRs'));
+
+irOutFolder = fullfile(outputFolder,'IRs');
+if ~exist(irOutFolder, 'dir')
+    mkdir(irOutFolder);
 end
-if ~exist(fullfile(outputFolder,'calcs'), 'dir')
-    mkdir(fullfile(outputFolder,'calcs'));
+
+calcsOutFolder = fullfile(outputFolder,'calcs');
+if ~exist(calcsOutFolder, 'dir')
+    mkdir(calcsOutFolder);
 end
+
+aFormatOutFolder = fullfile(outputFolder,'A-Format');
 
 %% Read audio files
 disp(['Loading input multichannel file: ' inputFile]);
@@ -53,52 +59,43 @@ disp(['Loading inverse sweep file: ' invSweepFile]);
 
 plotWaveform(recSweep,fs);
 
-% Ask user confirmation before proceeding
-choice = questdlg('Do you want to continue with processing?', ...
-                  'Confirmation', ...
-                  'Yes','No','Yes');
+disp('✅ Input Files loaded.');
 
-% Handle response
-switch choice
-    case 'Yes'
-        disp('✅ Proceeding with processing...');
-    case 'No'
-        disp('❌ Processing aborted by user.');
-        return   % stop script here
-end
+%% --- Post-Processing to get IR  ---
+% Monoaural 
+[irMono,peakValMono] = deconvolve(recSweep(:,monoCH),invSweep);
+[irMonoTrim,peakIdxMono] = trimIR(irMono,fs,preDly,irTrimLen);
 
+fprintf('Applied rescaling gain: %.2f dB to MONOAURAL signal\n', ...
+    20*log10(1/peakValMono));
 
-%% --- Processing Parameters ---
+% Binaural
+[irBin,peakValBin] = deconvolve(recSweep(:,binCH),invSweep);
+irBinTrim = trimIR(irBin,fs,preDly,irTrimLen);
 
-% Deconvolution
+fprintf('Applied rescaling gain: %.2f dB to BINAURAL signal\n', ...
+    20*log10(1/peakValBin));
 
-invSweepLen = length( invSweep );
-recSweepLen = length( recSweep );
-irLen       = recSweepLen + invSweepLen - 1;
-ir          = zeros( irLen, nChannels );    % pre-allocate matrix for IRs
+% B-format
+pluginPath = '/Library/Audio/Plug-Ins/Components/Sennheiser AMBEO A-B format converter.component';
+bformatConvPlugin = loadAudioPlugin(pluginPath);
+bformatConvPlugin.CoincidenceFilter = "off";
+bformatConvPlugin.Position = 'Endfire';
 
-% Monoaural
-irMono = fd_conv(recSweep(:,monoCH),invSweep);
-plotWaveform(irMono,fs);    % plot deconvolved data
+aFormat = recSweep(:,bFormatCH);
+bformatConvPlugin.setMaxSamplesPerFrame(length(recSweep));
+bFormat = process(bformatConvPlugin,aFormat);
 
-[peakVal, peakIdx] = max(abs(irMono));   % get value and index of peak
+[irBformat,peakValBin] = deconvolve(bFormat,invSweep);
+irBformatTrim = trimIR(irBformat,fs,preDly,irTrimLen);
 
-% Highlight the found max value in plot
+% Plot mono mic data
+plotWaveform(irMono,fs);
 hold(gca,"on");
-plot(peakIdx/fs,0,'Marker','o','MarkerSize',15,'LineWidth',2.5,'Color','red');
+
+% Highlight selected Impulse Response
+plot(peakIdxMono/fs,0,'Marker','o','MarkerSize',15,'LineWidth',2.5,'Color','red');
 hold(gca,"off");
-
-% Get trim parameters, do the trimming & rescale
-preDlySmpl = preDly * fs;
-irLenSmpl = irTrimLen * fs;
-iStart = peakIdx - preDlySmpl;           % start index for IR trim
-iStop  = iStart + irLenSmpl - 1;      % stop index for IR trim
-
-irMonoTrim = irMono(iStart:iStop);
-irMonoTrim = irMonoTrim/peakVal;
-
-log = sprintf('Applied rescaling gain: %.2f dB',20*log10(1/peakVal));
-disp(log);
 
 % Add the trimmed waveform to the figure
 subplot(2,1,1,gca);
@@ -107,64 +104,74 @@ plot((1:length(irMonoTrim))/fs,irMonoTrim)
 xlabel('Time [s]');
 title('Trimmed and rescaled IR of Monoaural microphone')
 
-% Ask user confirmation before proceeding
-choice = questdlg('Do you want to continue with processing?', ...
-                  'Confirmation', ...
-                  'Yes','No','Yes');
+% Plot b-format elaborated IRs
+plotWaveform(irBformatTrim,fs);
 
-% Handle response
-switch choice
-    case 'Yes'
-        disp('✅ Proceeding with processing...');
-    case 'No'
-        disp('❌ Processing aborted by user.');
-        return   % stop script here
-end
+disp('✅ Impulse Responses generated.');
 
 %% Export
-if ~exist(fullfile(outputFolder,'IRs',monoDir), 'dir')
-    mkdir(fullfile(outputFolder,'IRs',monoDir));
-end
+irMonoOutFolder = fullfile(irOutFolder,monoDir);
+outName = sprintf('%s-MONO', probeLabel);
+outMonoFile = exportAudio(irMonoTrim,fs,irMonoOutFolder,outName);
+fprintf('Exported: %s\n', outMonoFile);
 
-outIRFile = fullfile(outputFolder, 'IRs', monoDir, sprintf('%s-MONO.wav', probeLabel));
-audiowrite(outIRFile, irMonoTrim, fs);
-fprintf('Exported: %s\n', outIRFile);
+irBinOutFolder = fullfile(irOutFolder,binDir);
+outName = sprintf('%s-BIN', probeLabel);
+outBinFile = exportAudio(irBinTrim,fs,irBinOutFolder,outName);
+fprintf('Exported: %s\n', outBinFile);
 
-disp('✅ Impulse Response correctly exported.');
+outName = sprintf('%s-Aformat', probeLabel);
+outAformatFile = exportAudio(aFormat,fs,aFormatOutFolder,outName);
+fprintf('Exported: %s\n', outAformatFile);
+
+bFormatOutFolder = fullfile(irOutFolder,bFormatDir);
+outName = sprintf('%s-Bformat', probeLabel);
+outBformatFile = exportAudio(bFormat,fs,bFormatOutFolder,outName);
+fprintf('Exported: %s\n', outBformatFile);
+
+disp('✅ Impulse Responses correctly exported.');
 
 %% Compute acoustic parameters with acouPar
-command = sprintf('./acou_par --omni %s',outIRFile);
-status = system(command);
-
-% If acoustic parameters extraction went correctly, move the file
-if status == 0
-    if ~exist(fullfile(outputFolder,'calcs',monoDir), 'dir')
-        mkdir(fullfile(outputFolder,'calcs',monoDir));
-    end
-    acouParFileDst = fullfile(outputFolder, 'calcs', monoDir, sprintf('%s-MONO.txt', probeLabel));
-    movefile('acoupar_omni.txt',acouParFileDst)
+% --- Monoaural ---
+calcsMonoOutFolder = fullfile(calcsOutFolder,monoDir);
+if ~exist(calcsMonoOutFolder, 'dir')
+    mkdir(calcsMonoOutFolder);
 end
+acouParProcess(outMonoFile,calcsMonoOutFolder,probeLabel,mode="omni");
 
-%% Read acouPar outputs and generate excel
-parentFolder = fullfile(outputFolder,"calcs","MONOAURAL");
-acouParFiles = dir(parentFolder);
-
-acouParTb = table;
-for iFile = 1:length(acouParFiles)
-    if strcmp(acouParFiles(iFile).name,".") || strcmp(acouParFiles(iFile).name,"..")
-        continue
-    end
-    filename = acouParFiles(iFile).name;
-    acouParFile = fullfile(parentFolder,filename);
-    opts = detectImportOptions(acouParFile);
-    opts.VariableNames = replace(opts.VariableNames,'.','_');
-    rawAcouData = readtable(acouParFile,opts);
-
-    acouParTb = transformTable(rawAcouData,acouParTb,cellstr(filename));
+% --- Binaural ---
+calcsBinOutFolder = fullfile(calcsOutFolder,binDir);
+if ~exist(calcsBinOutFolder, 'dir')
+    mkdir(calcsBinOutFolder);
 end
+acouParProcess(outBinFile,calcsBinOutFolder,probeLabel,mode="bin");
+
+% --- B-Format ---
+% WY ambix data is required for lateral fraction extraction with AcouPar
+wy_signals = irBformatTrim(:,[1,2]);
+wyFileName = sprintf("%s-WY",probeLabel);
+wyFile = exportAudio(wy_signals,fs,pwd,wyFileName);
+
+calcsBformatOutFolder = fullfile(calcsOutFolder,bFormatDir);
+if ~exist(calcsBformatOutFolder, 'dir')
+    mkdir(calcsBformatOutFolder);
+end
+acouParProcess(wyFile,calcsBformatOutFolder,probeLabel,mode="wy");
+
+delete(wyFile);
+
+disp('✅ Acoustic Parameters extracted with AcouPar.');
+
+%% Read acouPar outputs
+
+monoParTb = readAcouPar(calcsMonoOutFolder,type="omni");
+binParTb = readAcouPar(calcsBinOutFolder,type="bin");
+
 
 %% Test plot
-p2Tb = acouParTb(acouParTb.Filename == "p1-ground-1-MONO.txt",:);
+
+filename = "p2-ground-2-MONO.txt";
+p2Tb = monoParTb(monoParTb.Filename == filename,:);
 p2Tb_T30 = p2Tb(p2Tb.Parameter == "T30",:);
 curveData = table2array(p2Tb_T30(:,...
     ["31_5","63","125","250","500","1000","2000","4000","8000","16000"]));
@@ -180,10 +187,51 @@ title("T30 - "+filename)
 %% Export summarizing excel
 
 outputExcelFile = fullfile(outputFolder,"calcs","calcs.xlsx");
-writetable(acouParTb,outputExcelFile,'Sheet',1);
+writetable(monoParTb,outputExcelFile,'Sheet',1);
+writetable(binParTb,outputExcelFile,'Sheet',2);
 
 
 %% Utility functions
+function [ir,peakVal] = deconvolve(recSweep,invSweep)
+
+% Initialize
+nChannels = size(recSweep,2);
+invSweepLen = length(invSweep);
+recSweepLen = length(recSweep);
+irLen       = recSweepLen + invSweepLen - 1;
+ir          = zeros(irLen,nChannels);
+
+% Deconvolve 
+for iCh = 1:nChannels
+    ir(:,iCh) = fd_conv(recSweep(:,iCh),invSweep);
+end
+
+peakVal = max(abs(ir));
+peakVal = max(peakVal);
+
+% Rescale
+ir = ir./peakVal;
+
+end
+
+function [irTrim,peakIdx] = trimIR(ir,fs,preDly,irDur)
+% Trim the IR signal from its max peak value
+[~, peakIdx] = max(abs(ir));   % get value and index of peak
+
+if any(size(peakIdx) > 1)
+    peakIdx = peakIdx(1);
+end
+
+% Get trim parameters, do the trimming & 
+preDlySmpl = preDly * fs;
+irLenSmpl = irDur * fs;
+iStart = peakIdx - preDlySmpl;
+iStop  = iStart + irLenSmpl - 1;
+
+irTrim = ir(iStart:iStop,:);
+
+end
+
 function ax = plotWaveform(audioData,fs)
 % Plot multichannel audio data waveforms
 [nSamples,nChannels] = size(audioData);
@@ -204,15 +252,64 @@ ax = gca;
 
 end
 
+function outFile = exportAudio(audioData,fs,outFolder,outName)
+if ~exist(outFolder, 'dir')
+    mkdir(outFolder);
+end
 
-function parTb = transformTable(rawTb,concTb,probeName)
+outFile = fullfile(outFolder, sprintf('%s.wav', outName));
+audiowrite(outFile, audioData, fs);
+
+end
+
+function acouParProcess(irFile,outFolder,outName,options)
+arguments
+    irFile string
+    outFolder string
+    outName string
+    options.mode string
+end
+
+if strcmp(options.mode,"omni")
+    outLabel = "MONO";
+    orgTxtFile = 'acoupar_omni.txt';
+elseif strcmp(options.mode,"bin")
+    outLabel = "BIN";
+    orgTxtFile = 'acoupar_BIN.txt';
+elseif strcmp(options.mode,"wy")
+    outLabel = "BFormat";
+    orgTxtFile = 'acoupar_WY.txt';
+else
+    error("AcouPar elaboration mode not recognized")
+end
+
+command = sprintf('./acou_par --%s %s',options.mode,irFile);
+[status,cmdout] = system(command);
+
+% If acoustic parameters extraction went correctly, move the file
+if status == 0
+    fprintf("acouPar analysed successfully %s\n",irFile);
+    if ~exist(outFolder, 'dir')
+        mkdir(outFolder);
+    end
+    newFileName = sprintf('%s-%s.txt', outName,outLabel);
+    newFilePath = fullfile(outFolder, newFileName);
+    movefile(orgTxtFile,newFilePath)
+else
+    warning("acouPar failed to analyse %s\n\t with output: \t%s",irFile,cmdout)
+end
+
+end
+
+function parTb = transformTable(rawTb,concTb,probeName,options)
 % convert acouPar raw output in a structured and manageble table
 arguments
     rawTb table
     concTb table = table
     probeName cell = {}
+    options.type string
 end
-    acouPars = {
+    common_pars = {
         'Signal'
         'Noise'
         'strenGth'
@@ -224,11 +321,21 @@ end
         'Tuser'
         'T20'
         'T30'
-        'Peakiness'
-        'Millisecs'
         };
 
-    unit = {
+    omni_pars = {
+        'Peakiness'
+        'Millisecs'
+        'Impulsivs'
+        };
+
+    bin_pars = {
+        'IACC'
+        'Tau IACC'
+        'w IACC'
+        };
+
+    common_unit = {
         'dB'
         'dB'
         'dB'
@@ -240,15 +347,35 @@ end
         's'
         's'
         's'
+        };
+
+    omni_unit = {
         'dB'
         'dB'
         'dB'
         };
+
+    bin_unit = {
+        ''
+        'ms'
+        'ms'
+        };
+
+    if strcmp(options.type,"omni")
+        pars = [common_pars; omni_pars];
+        unit = [common_unit; omni_unit];
+    elseif strcmp(options.type,"bin")
+        pars = [common_pars; bin_pars];
+        unit = [common_unit; bin_unit];
+    else
+        error("type not recognized")
+    end
+
     bands = {'31_5', '63','125', '250', '500', ...
         '1000', '2000','4000','8000','16000','A','Lin'};
 
     bandNo = length(bands);
-    parNo = length(acouPars);
+    parNo = length(pars);
 
     % Deal with exception values
     for iCol = 2:width(rawTb)
@@ -275,7 +402,33 @@ end
 
     for iPar = 1:parNo
         parTb = [parTb;
-            probeName, acouPars(iPar), unit(iPar),...
+            probeName, pars(iPar), unit(iPar),...
             num2cell(rawTb{:,2+(iPar-1)*bandNo:1+(iPar)*bandNo})];
     end
+end
+
+function parTb = readAcouPar(dataFolder,options)
+% It read acouPar txt files in given a folder and generates a unique table
+arguments
+    dataFolder string
+    options.type
+end
+
+txtFiles = dir(dataFolder);
+parTb = table;
+for iFile = 1:length(txtFiles)
+    if strcmp(txtFiles(iFile).name,".") ...
+        || strcmp(txtFiles(iFile).name,"..")
+        continue
+    end
+    filename = txtFiles(iFile).name;
+    txtFile = fullfile(dataFolder,filename);
+
+    opts = detectImportOptions(txtFile);
+    opts.VariableNames = replace(opts.VariableNames,'.','_');
+    rawData = readtable(txtFile,opts);
+
+    parTb = transformTable(rawData,parTb,cellstr(filename),type=options.type);
+end
+
 end
