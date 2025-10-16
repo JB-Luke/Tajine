@@ -1,4 +1,4 @@
-# Mango
+# Tajine
 ## Purpose
 
 This script provides post-processing of acoustic measurements performed with the sine sweep technique.
