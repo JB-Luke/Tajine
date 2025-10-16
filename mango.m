@@ -1,0 +1,195 @@
+% Copyright (c) 2025 Luca Battisti
+% This file is part of Mango.
+% Licensed under the BSD-3-Clause License. See the LICENSE file in the project root for details.
+
+% --- Multi-channel audio preprocessing script ---
+clear; close all; clc;
+
+addpath("functions")
+addpath(genpath("AcouPar"));
+
+%% Input/output parameters 
+inputFile = fullfile(pwd,'170325','170325-T004.WAV'); % input audio file
+invSweepFile = 'INV-ESS.wav';
+
+outputFolder    = 'Mausoleo-Teodorico'; % folder name - id of the measured env
+probeLabel      = 'p2-ground-2';
+
+% Trim parameters
+preDly      = 0.250;    % [s]
+irTrimLen   = 4;        % [s]
+
+% Transducers parameters & naming
+
+%  Ambisonics B-Format microphone
+bFormatCH = 1:4;
+bFormatDir= "B-FORMAT";
+
+% Binaural microphone
+binCH = [5,6];
+binDir = 'BINAURAL';
+
+% Mono microphone
+monoCH = 7;
+monoDir = 'MONOAURAL';
+
+% Create output folders
+if ~exist(outputFolder, 'dir')
+    mkdir(outputFolder);
+end
+
+irOutFolder = fullfile(outputFolder,'IRs');
+if ~exist(irOutFolder, 'dir')
+    mkdir(irOutFolder);
+end
+
+calcsOutFolder = fullfile(outputFolder,'calcs');
+if ~exist(calcsOutFolder, 'dir')
+    mkdir(calcsOutFolder);
+end
+
+aFormatOutFolder = fullfile(outputFolder,'A-Format');
+
+%% Read audio files
+disp(['Loading input multichannel file: ' inputFile]);
+[recSweep, fs] = audioread(inputFile);  
+[nSamples, nChannels] = size(recSweep);
+
+fprintf('Samples: %d, Channels: %d, Sample rate: %d Hz\n', nSamples, nChannels, fs);
+
+disp(['Loading inverse sweep file: ' invSweepFile]);
+[invSweep,~] = audioread(invSweepFile);
+
+plotWaveform(recSweep,fs);
+
+disp('✅ Input Files loaded.');
+
+%% --- Post-Processing to get IR  ---
+% Monoaural 
+[irMono,peakValMono] = deconvolve(recSweep(:,monoCH),invSweep);
+[irMonoTrim,peakIdxMono] = trimIR(irMono,fs,preDly,irTrimLen);
+
+fprintf('Applied rescaling gain: %.2f dB to MONOAURAL signal\n', ...
+    20*log10(1/peakValMono));
+
+% Binaural
+[irBin,peakValBin] = deconvolve(recSweep(:,binCH),invSweep);
+irBinTrim = trimIR(irBin,fs,preDly,irTrimLen);
+
+fprintf('Applied rescaling gain: %.2f dB to BINAURAL signal\n', ...
+    20*log10(1/peakValBin));
+
+% B-format
+pluginPath = '/Library/Audio/Plug-Ins/Components/Sennheiser AMBEO A-B format converter.component';
+bformatConvPlugin = loadAudioPlugin(pluginPath);
+bformatConvPlugin.CoincidenceFilter = "off";
+bformatConvPlugin.Position = 'Endfire';
+
+aFormat = recSweep(:,bFormatCH);
+bformatConvPlugin.setMaxSamplesPerFrame(length(recSweep));
+bFormat = process(bformatConvPlugin,aFormat);
+
+[irBformat,peakValBin] = deconvolve(bFormat,invSweep);
+irBformatTrim = trimIR(irBformat,fs,preDly,irTrimLen);
+
+% Plot mono mic data
+plotWaveform(irMono,fs);
+hold(gca,"on");
+
+% Highlight selected Impulse Response
+plot(peakIdxMono/fs,0,'Marker','o','MarkerSize',15,'LineWidth',2.5,'Color','red');
+hold(gca,"off");
+
+% Add the trimmed waveform to the figure
+subplot(2,1,1,gca);
+subplot(2,1,2);
+plot((1:length(irMonoTrim))/fs,irMonoTrim)
+xlabel('Time [s]');
+title('Trimmed and rescaled IR of Monoaural microphone')
+
+% Plot b-format elaborated IRs
+plotWaveform(irBformatTrim,fs);
+
+disp('✅ Impulse Responses generated.');
+
+%% Export
+irMonoOutFolder = fullfile(irOutFolder,monoDir);
+outName = sprintf('%s-MONO', probeLabel);
+outMonoFile = exportAudio(irMonoTrim,fs,irMonoOutFolder,outName);
+fprintf('Exported: %s\n', outMonoFile);
+
+irBinOutFolder = fullfile(irOutFolder,binDir);
+outName = sprintf('%s-BIN', probeLabel);
+outBinFile = exportAudio(irBinTrim,fs,irBinOutFolder,outName);
+fprintf('Exported: %s\n', outBinFile);
+
+outName = sprintf('%s-Aformat', probeLabel);
+outAformatFile = exportAudio(aFormat,fs,aFormatOutFolder,outName);
+fprintf('Exported: %s\n', outAformatFile);
+
+bFormatOutFolder = fullfile(irOutFolder,bFormatDir);
+outName = sprintf('%s-Bformat', probeLabel);
+outBformatFile = exportAudio(bFormat,fs,bFormatOutFolder,outName);
+fprintf('Exported: %s\n', outBformatFile);
+
+disp('✅ Impulse Responses correctly exported.');
+
+%% Compute acoustic parameters with acouPar
+% --- Monoaural ---
+calcsMonoOutFolder = fullfile(calcsOutFolder,monoDir);
+if ~exist(calcsMonoOutFolder, 'dir')
+    mkdir(calcsMonoOutFolder);
+end
+acouParProcess(outMonoFile,calcsMonoOutFolder,probeLabel,mode="omni");
+
+% --- Binaural ---
+calcsBinOutFolder = fullfile(calcsOutFolder,binDir);
+if ~exist(calcsBinOutFolder, 'dir')
+    mkdir(calcsBinOutFolder);
+end
+acouParProcess(outBinFile,calcsBinOutFolder,probeLabel,mode="bin");
+
+% --- B-Format ---
+% WY ambix data is required for lateral fraction extraction with AcouPar
+wy_signals = irBformatTrim(:,[1,2]);
+wyFileName = sprintf("%s-WY",probeLabel);
+wyFile = exportAudio(wy_signals,fs,pwd,wyFileName);
+
+calcsBformatOutFolder = fullfile(calcsOutFolder,bFormatDir);
+if ~exist(calcsBformatOutFolder, 'dir')
+    mkdir(calcsBformatOutFolder);
+end
+acouParProcess(wyFile,calcsBformatOutFolder,probeLabel,mode="wy");
+
+delete(wyFile);
+
+disp('✅ Acoustic Parameters extracted with AcouPar.');
+
+%% Read acouPar outputs
+
+monoParTb = readAcouPar(calcsMonoOutFolder,type="omni");
+binParTb = readAcouPar(calcsBinOutFolder,type="bin");
+bFormatParTb = readAcouPar(calcsBformatOutFolder,type="wy");
+
+%% Test plot
+
+filename = "p2-ground-2-MONO.txt";
+p2Tb = monoParTb(monoParTb.Filename == filename,:);
+p2Tb_T30 = p2Tb(p2Tb.Parameter == "T30",:);
+curveData = table2array(p2Tb_T30(:,...
+    ["31_5","63","125","250","500","1000","2000","4000","8000","16000"]));
+octaveBands = [31.5,63,125,250,500,1000,2000,4000,8000,16000];
+figure
+semilogx(octaveBands,curveData,'LineWidth',1.2)
+ylim([-10,10])
+grid on
+ylabel(p2Tb_T30.Unit)
+xlabel("Freq. [Hz]")
+title("T30 - "+filename)
+
+%% Export summarizing excel
+
+outputExcelFile = fullfile(outputFolder,"calcs","calcs.xlsx");
+writetable(monoParTb,outputExcelFile,'Sheet',1);
+writetable(binParTb,outputExcelFile,'Sheet',2);
+writetable(bFormatParTb,outputExcelFile,'Sheet',3);
