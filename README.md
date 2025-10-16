@@ -6,6 +6,12 @@ The traditional workflows, such as the use of a DAW (like Adobe Audition 3.0) al
 
 The main purpose of this script is to embrace all the manual step leaving to the user just few manual visual or auditory checks that simplify the procedure but leaving control to the operator.
 
+## Features
+
+- Support and process multiple transducers file (monoaural omni mic, binaural 2-channel dummy head, 3D A-Format mic)
+- It extracts and analyse Impulse Responses based on the capturing transducer 
+- It works on both Windows and MacOS 
+
 ## Workflow
 
 - **Input**: Multichannel audio data acquired through an audio interface from multiple microphones (transducers), inverse sweep.
@@ -30,10 +36,7 @@ The main purpose of this script is to embrace all the manual step leaving to the
 4. Specify the name of the output files in `probeLabel` (e.g.: *p1-gallery-bis*)
 5. Launch the script
 
-
-The script will run entierly
-
-### Manual check
+### Manual checks
 - The user shall perform a visual check of the input file audio plot in Figure 1 (sweep recording)
 - The user shall perform a visual check of the found Impulse Response and its trimmed version (Figure 2)
 

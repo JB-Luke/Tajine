@@ -1,5 +1,5 @@
 % Copyright (c) 2025 Luca Battisti
-% This file is part of Mango.
+% This file is part of Tajine software.
 % Licensed under the BSD-3-Clause License. See the LICENSE file in the project root for details.
 
 % --- Multi-channel audio preprocessing script ---
@@ -32,6 +32,14 @@ binDir = 'BINAURAL';
 % Mono microphone
 monoCH = 7;
 monoDir = 'MONOAURAL';
+
+if ismac
+    pluginPath = '/Library/Audio/Plug-Ins/Components/Sennheiser AMBEO A-B format converter.component';
+elseif ispc
+    pluginPath = 'C:\Program Files\Common Files\VST3\Sennheiser AMBEO A-B format converter.vst3';
+else
+    error("Incompatible OS")
+end
 
 % Create output folders
 if ~exist(outputFolder, 'dir')
@@ -80,7 +88,6 @@ fprintf('Applied rescaling gain: %.2f dB to BINAURAL signal\n', ...
     20*log10(1/peakValBin));
 
 % B-format
-pluginPath = '/Library/Audio/Plug-Ins/Components/Sennheiser AMBEO A-B format converter.component';
 bformatConvPlugin = loadAudioPlugin(pluginPath);
 bformatConvPlugin.CoincidenceFilter = "off";
 bformatConvPlugin.Position = 'Endfire';

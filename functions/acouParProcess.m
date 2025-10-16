@@ -20,7 +20,16 @@ else
 end
 
 
-command = sprintf('./AcouPar/mac/acou_par --%s %s',options.mode,irFile);
+if ismac
+    acouParFile = fullfile('AcouPar','mac','acou_par');
+    command = sprintf('./%s --%s %s',acouParFile,options.mode,irFile);
+elseif ispc
+    acouParFile = fullfile('AcouPar','win','acou_par.exe');
+    command = sprintf('.\\%s --%s %s',acouParFile,options.mode,irFile);
+else
+    error("Incompatible OS");
+end
+
 [status,cmdout] = system(command);
 
 % If acoustic parameters extraction went correctly, move the file
