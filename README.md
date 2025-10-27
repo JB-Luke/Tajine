@@ -12,6 +12,10 @@ The main purpose of this script is to embrace all the manual step leaving to the
 - It extracts and analyse Impulse Responses based on the capturing transducer 
 - It works on both Windows and MacOS 
 
+## Software required
+- Matlab 2025a (previous versions have not been tested)
+- [Sennheiser AMBEO A-B format converter plugin](https://www.sennheiser.com/en-lt/catalog/products/microphones/ambeo-vr-mic/ambeo-vr-mic-507195#Downloads) (Au version for MacOs and VST3 version for Windows)
+
 ## Workflow
 
 - **Input**: Multichannel audio data acquired through an audio interface from multiple microphones (transducers), inverse sweep.

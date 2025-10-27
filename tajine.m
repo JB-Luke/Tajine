@@ -5,19 +5,26 @@
 % --- Multi-channel audio preprocessing script ---
 clear; close all; clc;
 
-addpath("functions")
+addpath(genpath("functions"));
 addpath(genpath("AcouPar"));
+
+disp("Tajine "+runtimeVersionString);
+
+v = getVersion();
+if ~strcmp("v"+v.semver,v.gitTag)
+    warning("Local version differs from git tag")
+end
 
 %% Input/output parameters 
 inputFile = fullfile(pwd,'170325','170325-T004.WAV'); % input audio file
 invSweepFile = 'INV-ESS.wav';
 
 outputFolder    = 'Mausoleo-Teodorico'; % folder name - id of the measured env
-probeLabel      = 'p2-ground-2';
+probeLabel      = 'p2-ground-floor-2';
 
 % Trim parameters
-preDly      = 0.250;    % [s]
-irTrimLen   = 4;        % [s]
+preDly      = 0.5;    % [s]
+irTrimLen   = 8;        % [s]
 
 % Transducers parameters & naming
 
@@ -107,12 +114,25 @@ hold(gca,"on");
 plot(peakIdxMono/fs,0,'Marker','o','MarkerSize',15,'LineWidth',2.5,'Color','red');
 hold(gca,"off");
 
+e = abs(irMonoTrim).^2;
+noise_samples = (preDly*0.95)*fs; % close to the peak
+e_noise = mean(e(1:noise_samples));
+
+freq = 63;
+b = (freq/fs)*ones(1,round(fs/freq));
+e_filt = filter(b, 1, e);
+
 % Add the trimmed waveform to the figure
-subplot(2,1,1,gca);
-subplot(2,1,2);
-plot((1:length(irMonoTrim))/fs,irMonoTrim)
-xlabel('Time [s]');
+subplot(3,1,1,gca);
+subplot(3,1,2);
+plot((1:length(irMonoTrim))/fs,irMonoTrim);
 title('Trimmed and rescaled IR of Monoaural microphone')
+subplot(3,1,3);
+plot((1:length(irMonoTrim))/fs,20*log10(e_filt)); hold on;
+% plot((1:noise_samples)/fs,e(1:noise_samples)); hold on
+yline(20*log10(e_noise)); hold off;
+title('Energy of the IR and background noise');
+xlabel('Time [s]');
 
 % Plot b-format elaborated IRs
 plotWaveform(irBformatTrim,fs);
@@ -158,7 +178,7 @@ acouParProcess(outBinFile,calcsBinOutFolder,probeLabel,mode="bin");
 
 % --- B-Format ---
 % WY ambix data is required for lateral fraction extraction with AcouPar
-wy_signals = irBformatTrim(:,[1,2]);
+wy_signals = irBformatTrim(:,[2,1]);
 wyFileName = sprintf("%s-WY",probeLabel);
 wyFile = exportAudio(wy_signals,fs,pwd,wyFileName);
 
@@ -179,20 +199,21 @@ binParTb = readAcouPar(calcsBinOutFolder,type="bin");
 bFormatParTb = readAcouPar(calcsBformatOutFolder,type="wy");
 
 %% Test plot
+filename = "p2-ground-floor-2";
+param = "Lj";
 
-filename = "p2-ground-2-MONO.txt";
-p2Tb = monoParTb(monoParTb.Filename == filename,:);
-p2Tb_T30 = p2Tb(p2Tb.Parameter == "T30",:);
-curveData = table2array(p2Tb_T30(:,...
+pointTb = bFormatParTb(contains(bFormatParTb.Filename,filename),:);
+p2Tb_param = pointTb(pointTb.Parameter == param,:);
+curveData = table2array(p2Tb_param(:,...
     ["31_5","63","125","250","500","1000","2000","4000","8000","16000"]));
 octaveBands = [31.5,63,125,250,500,1000,2000,4000,8000,16000];
 figure
 semilogx(octaveBands,curveData,'LineWidth',1.2)
-ylim([-10,10])
+% ylim([-10,10])
 grid on
-ylabel(p2Tb_T30.Unit)
+ylabel(p2Tb_param.Unit)
 xlabel("Freq. [Hz]")
-title("T30 - "+filename)
+title(param + " - " + filename)
 
 %% Export summarizing excel
 
