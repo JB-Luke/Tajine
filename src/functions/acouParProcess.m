@@ -6,6 +6,8 @@ arguments
     options.mode string
 end
 
+irFileShort = ".." + extractAfter(irFile,pwd);
+
 if strcmp(options.mode,"omni")
     outLabel = "MONO";
     orgTxtFile = 'acoupar_omni.txt';
@@ -34,7 +36,7 @@ end
 
 % If acoustic parameters extraction went correctly, move the file
 if status == 0
-    fprintf("acouPar analysed successfully %s\n",irFile);
+    fprintf("acouPar analysed successfully %s\n",irFileShort);
     if ~exist(outFolder, 'dir')
         mkdir(outFolder);
     end

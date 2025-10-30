@@ -25,5 +25,4 @@ classdef Recording_tests < matlab.unittest.TestCase
             tc.verifyEqual(rec.Fs,fs)
         end
     end
-
 end

@@ -3,8 +3,9 @@
 % Licensed under the BSD-3-Clause License. See the LICENSE file in the project root for details.
 
 % --- Multi-channel audio preprocessing script ---
-clear; close all; clc;
+testMode = true;
 
+% Diplay version
 disp("Tajine "+runtimeVersionString());
 
 v = getVersion();
@@ -12,16 +13,25 @@ if ~strcmp("v"+v.semver,v.gitTag)
     warning("Local version differs from git tag")
 end
 
-%% Input/output parameters 
-measurement_site_name = "Mausoleo-Teodorico";
-probeLabel      = 'p2-ground-floor-2';
+fprintf("\n");
 
-inputFile = fullfile(pwd,"test_dataset","170325","170325-T004.WAV"); % input audio file
+%% Input/output parameters 
+
+siteName = "Mausoleo-Teodorico"; % String to identify the measurement site
+
+% String to identify the measurement point in relation with the audiofile
+% probeId = "p2-ground-floor-2";
+probeId      = 'p3-first-floor-1'; 
+
+addPlot = false; % set to true to add different measure point(s) to figures
+
+% Input files
+inputFile = fullfile(pwd,"test_dataset","170325(1)","170325-T001.WAV"); % input audio file
 invSweepFile = fullfile(pwd,"test_dataset","INV-ESS.wav");
 
 % Trim parameters
-preDly      = 0.5;    % [s]
-irTrimLen   = 8;      % [s]
+preDly      = 1; % s
+irTrimLen   = 10; % s
 
 % Transducers parameters & naming
 
@@ -45,20 +55,25 @@ else
     error("Incompatible OS")
 end
 
-tajine = Tajine(measurement_site_name);  % instance of main object 
+tajine = Tajine(siteName);  % instance of main object 
 rec = Recording();
-rec.Name = probeLabel;
+rec.Name = probeId;
+
+if ~exist("figureSet","var")
+    figureSet = gobjects(12,1);
+end
 
 %% Read audio files
 
 rec = rec.load(inputFile);
 fs = rec.Fs;
 
+fprintf("\n");
 invSweep = rec.load(invSweepFile);
 
-plotWaveform(rec.Data,fs);
+plotWaveform(rec.Data,fs,figNum=1);
 
-disp('✅ Input Files loaded.');
+fprintf("\n✅ Input Files loaded.\n\n\n");
 
 %% --- Post-Processing to get IR  ---
 % Monoaural 
@@ -88,7 +103,7 @@ bFormat = process(bformatConvPlugin,aFormat);
 irBformatTrim = trimIR(irBformat,fs,preDly,irTrimLen);
 
 % Plot mono mic data
-plotWaveform(irMono,fs);
+plotWaveform(irMono,fs,figNum=2);
 hold(gca,"on");
 
 % Highlight selected Impulse Response
@@ -96,7 +111,7 @@ plot(peakIdxMono/fs,0,'Marker','o','MarkerSize',15,'LineWidth',2.5,'Color','red'
 hold(gca,"off");
 
 e = abs(irMonoTrim).^2;
-noise_samples = (preDly*0.95)*fs; % close to the peak
+noise_samples = (preDly*0.85)*fs; % close to the peak
 e_noise = mean(e(1:noise_samples));
 
 freq = 63;
@@ -116,9 +131,9 @@ title('Energy of the IR and background noise');
 xlabel('Time [s]');
 
 % Plot b-format elaborated IRs
-plotWaveform(irBformatTrim,fs);
+plotWaveform(irBformatTrim,fs,figNum=3);
 
-disp('✅ Impulse Responses generated.');
+fprintf('\n✅ Impulse Responses generated.\n\n\n');
 
 %% Export
 % Create output folders
@@ -137,25 +152,25 @@ aFormatOutFolder = fullfile(outputFolder,'A-Format');
 
 % Export data
 irMonoOutFolder = fullfile(irOutFolder,monoDir);
-outName = sprintf('%s-MONO', probeLabel);
+outName = sprintf('%s-MONO', probeId);
 outMonoFile = exportAudio(irMonoTrim,fs,irMonoOutFolder,outName);
 fprintf('Exported: %s\n', outMonoFile);
 
 irBinOutFolder = fullfile(irOutFolder,binDir);
-outName = sprintf('%s-BIN', probeLabel);
+outName = sprintf('%s-BIN', probeId);
 outBinFile = exportAudio(irBinTrim,fs,irBinOutFolder,outName);
 fprintf('Exported: %s\n', outBinFile);
 
-outName = sprintf('%s-Aformat', probeLabel);
+outName = sprintf('%s-Aformat', probeId);
 outAformatFile = exportAudio(aFormat,fs,aFormatOutFolder,outName);
 fprintf('Exported: %s\n', outAformatFile);
 
 bFormatOutFolder = fullfile(irOutFolder,bFormatDir);
-outName = sprintf('%s-Bformat', probeLabel);
+outName = sprintf('%s-Bformat', probeId);
 outBformatFile = exportAudio(bFormat,fs,bFormatOutFolder,outName);
 fprintf('Exported: %s\n', outBformatFile);
 
-disp('✅ Impulse Responses correctly exported.');
+fprintf('\n✅ Impulse Responses exported.\n\n\n');
 
 %% Compute acoustic parameters with acouPar
 calcsOutFolder = fullfile(outputFolder,'calcs');
@@ -168,58 +183,57 @@ calcsMonoOutFolder = fullfile(calcsOutFolder,monoDir);
 if ~exist(calcsMonoOutFolder, 'dir')
     mkdir(calcsMonoOutFolder);
 end
-acouParProcess(outMonoFile,calcsMonoOutFolder,probeLabel,mode="omni");
+acouParProcess(outMonoFile,calcsMonoOutFolder,probeId,mode="omni");
 
 % --- Binaural ---
 calcsBinOutFolder = fullfile(calcsOutFolder,binDir);
 if ~exist(calcsBinOutFolder, 'dir')
     mkdir(calcsBinOutFolder);
 end
-acouParProcess(outBinFile,calcsBinOutFolder,probeLabel,mode="bin");
+acouParProcess(outBinFile,calcsBinOutFolder,probeId,mode="bin");
 
 % --- B-Format ---
 % WY ambix data is required for lateral fraction extraction with AcouPar
 wy_signals = irBformatTrim(:,[2,1]);
-wyFileName = sprintf("%s-WY",probeLabel);
+wyFileName = sprintf("%s-WY",probeId);
 wyFile = exportAudio(wy_signals,fs,pwd,wyFileName);
 
 calcsBformatOutFolder = fullfile(calcsOutFolder,bFormatDir);
 if ~exist(calcsBformatOutFolder, 'dir')
     mkdir(calcsBformatOutFolder);
 end
-acouParProcess(wyFile,calcsBformatOutFolder,probeLabel,mode="wy");
+acouParProcess(wyFile,calcsBformatOutFolder,probeId,mode="wy");
 
 delete(wyFile);
 
-disp('✅ Acoustic Parameters extracted with AcouPar.');
+fprintf('\n✅ Acoustic Parameters extracted with AcouPar.\n\n\n');
 
 %% Read acouPar outputs
-
+% To build the parameter table all the .txt file are read from the calcs 
+% folder. Each probe point are added one time (not appended to the table)
 monoParTb = readAcouPar(calcsMonoOutFolder,type="omni");
 binParTb = readAcouPar(calcsBinOutFolder,type="bin");
 bFormatParTb = readAcouPar(calcsBformatOutFolder,type="wy");
 
-%% Test plot
-filename = "p2-ground-floor-2";
-param = "Lj";
-
-pointTb = bFormatParTb(contains(bFormatParTb.Filename,filename),:);
-p2Tb_param = pointTb(pointTb.Parameter == param,:);
-curveData = table2array(p2Tb_param(:,...
-    ["31_5","63","125","250","500","1000","2000","4000","8000","16000"]));
-octaveBands = [31.5,63,125,250,500,1000,2000,4000,8000,16000];
-figure
-semilogx(octaveBands,curveData,'LineWidth',1.2)
-% ylim([-10,10])
-grid on
-ylabel(p2Tb_param.Unit)
-xlabel("Freq. [Hz]")
-title(param + " - " + filename)
+parTb = [monoParTb; binParTb; bFormatParTb];
+matFile = fullfile(calcsOutFolder,"dataset.mat");
+save(matFile,"parTb");
+fprintf("Exported dataset: ..%s\n",extractAfter(matFile,pwd));
+fprintf('\n✅ Matlab dataset file exported.\n\n\n');
 
 %% Export summarizing excel
-
 
 outputExcelFile = fullfile(outputFolder,"calcs","calcs.xlsx");
 writetable(monoParTb,outputExcelFile,'Sheet',1);
 writetable(binParTb,outputExcelFile,'Sheet',2);
 writetable(bFormatParTb,outputExcelFile,'Sheet',3);
+fprintf('MS Excel file written in ..%s\n',extractAfter(outputExcelFile,pwd));
+fprintf('\n✅ Wrap-up Excel file generated.\n\n\n');
+
+%% Plot
+% Generate dedicated figures for each Acoustic parameter. 
+% Add different curve for each probe
+
+figureSet = plotResults(parTb,siteName,figureSet);
+
+fprintf('✅ Plot generation complete.\n\n');
