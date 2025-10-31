@@ -15,10 +15,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [1.1.0] - 2025-10-31
+
+### Added
+- Complete set of acoustic parameters figures
+- Clean elaboration of multiple files 
+- Generation of matlab dataset.mat 
+
+### Changed
+- General file structure/organization
 
 ## [1.0.0] - 2025-10-25
 
 - First version, pure modular-procedural approach.
 
-[unreleased]: https://github.com/JB-Luke/Tajine/compare/v1.0.0...HEAD
+[unreleased]: https://github.com/JB-Luke/Tajine/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/JB-Luke/Tajine/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/JB-Luke/Tajine/compare/v0.0.1...v1.0.0

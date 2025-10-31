@@ -1,20 +1,21 @@
 # Tajine
 ## Purpose
 
-This script provides post-processing of acoustic measurements performed with the sine sweep technique.
-The traditional workflows, such as the use of a DAW (like Adobe Audition 3.0) alongside acoustic elaboration plugins (like Aurora) are cumersome and require many manual steps which highly prone to user errors.
+This script provides post-processing of acoustic measurements performed using the sine sweep technique.
+Traditional workflows, such as using a DAW (like Adobe Audition 3.0) alongside acoustic processing plug-ins (like Aurora), are cumbersome and require many manual steps, making them highly prone to user error.
 
-The main purpose of this script is to embrace all the manual step leaving to the user just few manual visual or auditory checks that simplify the procedure but leaving control to the operator.
+The main purpose of this script is to automate all manual steps, leaving the user with just a few visual or auditory checks to perform, thereby simplifying the procedure while retaining operator control.
 
 ## Features
 
-- Support and process multiple transducers file (monoaural omni mic, binaural 2-channel dummy head, 3D A-Format mic)
-- It extracts and analyse Impulse Responses based on the capturing transducer 
-- It works on both Windows and MacOS 
+-  Support and process multichannel audio files where different channels belong to different transducers (monoaural omni mic, binaural 2-channel dummy head, 3D A-Format mic)
+ - Converts A-Format to B-Format ambisonics microphone signals
+ - Extracts and analyse Impulse Responses based on the capturing transducer 
+ - Works on both Windows and MacOS 
 
-## Software required
+## Requirements
 - Matlab 2025a (previous versions have not been tested)
-- [Sennheiser AMBEO A-B format converter plugin](https://www.sennheiser.com/en-lt/catalog/products/microphones/ambeo-vr-mic/ambeo-vr-mic-507195#Downloads) (Au version for MacOs and VST3 version for Windows)
+- [Sennheiser AMBEO A-B format converter plugin](https://www.sennheiser.com/en-lt/catalog/products/microphones/ambeo-vr-mic/ambeo-vr-mic-507195#Downloads) (Au version for MacOS and VST3 version for Windows)
 
 ## Workflow
 
@@ -26,31 +27,42 @@ The main purpose of this script is to embrace all the manual step leaving to the
 
 - **Output**: For each transducer, a dedicated audio file is created, containing the IRs, as well as a set of text files containing the acoustic parameters and a wrap-up spreadsheet file
 
-## Output
+### Output
+- A set of **WAV files** 
+  Each file includes all the processed impulse responses belonging to a single transducer (monoaural omnidirectional, binaural dummy head, Ambeo VR mic).
+- A set of **text files** (.txt) containing the acoustic parameters belonging to a single transducer (processed by AcouPar)
+- A wrap-up **Excel file** with containing the parameters organized in different tables, one for each transducer.
+- A **dataset.mat** file containing a Matlab table with all the acoustic parameters of all the elaborated measurement points (from different input files) 
 
-- A set of WAV files each file includes all elaborated IR  belonging to a single transducer (monoaural omnidirectional, binaural dummyhead, ambeo VR mic).
-- A set of txt files containig the acoustic parameters belonging to a single transducer
-- A wrap-up excel with containing the parameters organized in different tables, one per each transducers
+The files containing the impulse response are organised in folders by transducer type, as are the elaboration text files, the Excel file and the dataset.mat file. 
 
 ## How-to
-1. Specify a name to identify the measurement site (used to create the output folder) `siteName` (e.g.: *zagreb-national-thater*)
+
+The script can be found in [src/tajine_script.m](src/tajine_script.m) 
+
+1. Specify a name to identify the measurement site (this is used to create the output folder): `siteName` (e.g.: *zagreb-national-thater*)
 2. Specify the name of the measurement point related to the audio file in `probeId` (e.g.: *p1-gallery-bis*)
-3. Specify the path of the file to elaborate `inputFile` 
-4. Specify the path of the Inverse Sweep file `invSweepFile`
-5. Check and modify pre-delay and IR trimming length in `preDly`and `irTrimLen`. 
-> **Note:** These values can be changed also in a second time after the script has been launched once, and the Impulse Response length has been verified; the script can be launched again to apply the new values
-6. Launch the script
+3. Specify the path of the file to to be processed: `inputFile` 
+4. Specify the path of the inverse sweep file in: `invSweepFile`
+5. If necessary, modify the pre-delay in: `preDly`
+   and the IR trimming length in: `irTrimLen`. 
+> **Note:** These values can also be changed thereafter the script has been launched and the Impulse Response length verified by the operator in the IR energy plot . The script can then be launched again to apply the new values.
+6. Launch the script.
+
+> **Note:** multiple points of the same site can be processed changing the input file and the probe ID, while keeping the same site name. The new elaboration data will be added to the output folder and to the plots.
 
 ### Manual checks
-- The user shall perform a visual check of the input file audio plot in Figure 1 (sweep recording)
-- The user shall perform a visual check of the found Impulse Response and its trimmed version (Figure 2)
+- The user shall perform a visual check of the input file data plot in Figure 1 (sweep recording)
+- The user shall perform a visual check of the found impulse response and its trimmed version (Figure 2)
 
-## Print & Images
+## CL output & Images
 
-A command line typical output generated by Tajine can be found [here](docs/cmd_output.md).
+A typical command line output generated by Tajine can be found [here](docs/cmd_output.md).
 
-<img src="docs/imgs/raw-recording.png" width="800" height="450">
-<img src="docs/imgs/IR-deconvolution.png" width="800" height="450">
-<img src="docs/imgs/B-Format-conversion.png" width="800" height="450">
-<img src="docs/imgs/Output-tree.png" width="150" height="200">
-<img src="docs/imgs/T30.png" width="400" height="350">
+A typical set of output figures from a Tajine run are reported below.
+
+<img src="docs/imgs/raw-recording.png" width="800">
+<img src="docs/imgs/IR-deconvolution.png" width="800">
+<img src="docs/imgs/B-Format-conversion.png" width="800">
+<img src="docs/imgs/Output-tree.png" width="200">
+<img src="docs/imgs/T30.png" width="600">
