@@ -9,47 +9,28 @@ arguments
     figureSet
 end
 
-probeIdSuffix.mono = "-MONO.txt";
-probeIdSuffix.bin = "-BIN.txt";
-probeIdSuffix.bformat = "-BFormat.txt";
+acquisitionId = unique(parTb(:,{'PointId','AcquisitionNo'}));
 
-filenames = parTb.Filename;
-probeIdSet = getProbeIdSet(filenames,probeIdSuffix);
-
-for iProbe = 1:length(probeIdSet)
-    if iProbe == 1 
-        append = false;
+for iAcq = 1:height(acquisitionId)
+    if iAcq == 1 
+        appendPlot = false;
     else
-        append = true;
+        appendPlot = true;
     end
+    pointId = acquisitionId{iAcq,'PointId'};
+    acquisitionNo = acquisitionId{iAcq,'AcquisitionNo'};
 
-    figureSet = createFigures(parTb,probeIdSet(iProbe),probeIdSuffix,plotTitle,append=append,figureSet=figureSet);
+    figureSet = createFigures(parTb,pointId,acquisitionNo,plotTitle, ...
+        append=appendPlot,figureSet=figureSet);
 end
-
-    function probeIdSet = getProbeIdSet(filenames,probeIdSuffix)
-        % Extract unique probeId from the parameter table
-        % parameter table filenames contains transducer suffix '-MONO.txt', 
-        % '-BIN.txt', 'BFormat'
-        for iStr = 1:length(filenames)
-            if endsWith(filenames(iStr),probeIdSuffix.mono)
-                probeIdSet(iStr) = extractBefore(filenames(iStr),probeIdSuffix.mono);
-            elseif endsWith(filenames(iStr),probeIdSuffix.bin)
-                probeIdSet(iStr) = extractBefore(filenames(iStr),probeIdSuffix.bin);
-            elseif endsWith(filenames(iStr),probeIdSuffix.bformat)
-                probeIdSet(iStr) = extractBefore(filenames(iStr),probeIdSuffix.bformat);
-            end
-        end
-
-        probeIdSet = unique(probeIdSet);
-    end
 
 end
 
-function figureSet = createFigures(parTb,probeId,probeIdSuffix,plotTitle,options)
+function figureSet = createFigures(parTb,pointId,acquisitionNo,plotTitle,options)
 arguments
     parTb
-    probeId
-    probeIdSuffix
+    pointId
+    acquisitionNo
     plotTitle
     options.figureSet
     options.append = false
@@ -72,9 +53,11 @@ allParam = struct2array(paramSet);
 for iPar = 1:length(allParam)
     param = allParam(iPar);
 
-    fullProbeId = getFullProbeId(probeId,param,paramSet,probeIdSuffix);
+    transducerType = getTransducerType(param,paramSet);
 
-    [yData,xData,unit] = filterParTb(parTb,fullProbeId,param);
+    parTb_filt = filterParTb(parTb,param,pointId,acquisitionNo,transducerType);
+
+    [yData,xData,unit] = getCurveData(parTb_filt);
 
     if ~isgraphics(figureSet(iPar))
         figureSet(iPar) = figure(Name=param);
@@ -82,32 +65,42 @@ for iPar = 1:length(allParam)
 
     plotParFig(xData,yData,figureSet(iPar),addPlot=append);
 
-    applyGraphics(figureSet(iPar),unit,param,plotTitle,probeId,addPlot=append);
+    acquisitionString = buildAcquisitionString(parTb_filt);
+    applyGraphics(figureSet(iPar),unit,param,plotTitle,acquisitionString,addPlot=append);
 end
 
-    function fullProbeId = getFullProbeId(probeId,param,paramSet,suffix)
-        % Rebuild the full probeId string to locate parameters based on the
-        % transducer. E.g.: monoaural parameters are plot from omni
-        % transducer only
+    function transducerType = getTransducerType(param,paramSet)
+        % Return the proper transducer type based on the parameter required
         if ismember(param,paramSet.mono)
-            fullProbeId = probeId + suffix.mono;
+            transducerType = "MONO";
         elseif ismember(param,paramSet.bin)
-            fullProbeId = probeId + suffix.bin;
+            transducerType = "BIN";
         elseif ismember(param,paramSet.bformat)
-            fullProbeId = probeId + suffix.bformat;
+            transducerType = "BFormat";
         end
     end
 
+    function acquisitionString = buildAcquisitionString(parTbRecord)
+        if height(parTbRecord) > 1
+            error("Expected a single row table")
+        end
+        acquisitionString = ...
+            parTbRecord.PointId + "-" + ...
+            parTbRecord.AreaId + "-" + ...
+            string(parTbRecord.AcquisitionNo);               
+    end
 end
 
 %% Utility functions
-function tb_filt = filterByPoint(parTb,pointID)
-mask = strcmp(parTb.Filename,pointID);
-tb_filt = parTb(mask,:);
+function tb_filt = filterByColumn(parTb,columnName,value)
+if isstring(value)
+    mask = strcmp(parTb.(columnName),value);
+elseif isnumeric(value)
+    mask = parTb.(columnName) == value;
+else
+    error("Value type not supported")
 end
 
-function tb_filt = filterByParameter(parTb,param)
-mask = strcmp(parTb.Parameter,param);
 tb_filt = parTb(mask,:);
 end
 
@@ -123,29 +116,24 @@ yData = table2array(parTb(:,column_mask));
 unit = parTb.Unit;
 end
 
-function [yData,xData,unit] = filterParTb(parTb,pointID,param)
+function parTb_filt = filterParTb(parTb,param,pointId, ...
+    acquisitionNo,transducerType)
+col2Filter = ["PointId", "AcquisitionNo", "TransducerType","Parameter"];
+filterValues = {pointId, acquisitionNo, transducerType, param};
 
-% Filter by point ID
-parTb_filt1 = filterByPoint(parTb,pointID);
 
-if isempty(parTb_filt1)
-    error("Specified point ID not found")
-end
-if size(unique(parTb_filt1.Filename))>1
-    error("Multiple point ID found")
-end
+for iCol = 1:length(filterValues)
+    parTb = filterByColumn(parTb,col2Filter(iCol),filterValues{iCol});
+    if isempty(parTb)
+        error("Specified filter (%s) gave no results.", col2Filter(iCol))
+    end
 
-% Filter by Parameter
-parTb_filt2 = filterByParameter(parTb_filt1,param);
-if isempty(parTb_filt2)
-    warning("Specified parameter not found in the table")
 end
-if height(parTb_filt2.Filename)>1
+parTb_filt = parTb;
+if height(parTb_filt) > 1
     error("Multiple parameter found")
 end
 
-% Extract curve data
-[yData,xData,unit] = getCurveData(parTb_filt2);
 end
 
 function plotParFig(xData,yData,fig,options)
@@ -168,29 +156,30 @@ xticks(xData)
 
 end
 
-function applyGraphics(fig,unit,parName,plotTitle,probeLabel,options)
+function applyGraphics(fig,unit,parName,plotTitle,acquisitionId,options)
 arguments
     fig
     unit
     parName
     plotTitle
-    probeLabel
+    acquisitionId
     options.addPlot = false
 end
 
 figure(fig);
 
 grid on
+xlim([125 8000]);
 ylabel(unit)
 xlabel("Freq. [Hz]")
 title(parName + " - " + plotTitle);
 
 if options.addPlot
     legendLabels = string(legend(gca).String);
-    legendLabels(end) = probeLabel;
+    legendLabels(end) = acquisitionId;
     legend(legendLabels)
 else
-    legend(probeLabel)
+    legend(acquisitionId,'Interpreter','none')
 end
 
 end

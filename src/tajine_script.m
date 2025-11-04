@@ -20,13 +20,19 @@ fprintf("\n");
 siteName = "Mausoleo-Teodorico"; % String to identify the measurement site
 
 % String to identify the measurement point in relation with the audiofile
-% probeId = "p2-ground-floor-2";
-probeId      = 'p3-first-floor-1'; 
+%
+% The combination of pointId and acquisitionNo identifies a unique
+% recording.
+% areaId is employed to compute averages 
 
-addPlot = false; % set to true to add different measure point(s) to figures
+pointId = "p1"; % Unique acquisition point (in space) identifier
+areaId = "ground_floor"; % underscore only is allowed between words
+acquisitionNo = "1";
+
+acquisitionId = pointId + "-" + areaId + "-" + acquisitionNo;
 
 % Input files
-inputFile = fullfile(pwd,"test_dataset","170325(1)","170325-T001.WAV"); % input audio file
+inputFile = fullfile(pwd,"test_dataset","170325","170325-T004.WAV"); % input audio file
 invSweepFile = fullfile(pwd,"test_dataset","INV-ESS.wav");
 
 % Trim parameters
@@ -57,7 +63,7 @@ end
 
 tajine = Tajine(siteName);  % instance of main object 
 rec = Recording();
-rec.Name = probeId;
+rec.Name = acquisitionId;
 
 if ~exist("figureSet","var")
     figureSet = gobjects(12,1);
@@ -152,21 +158,21 @@ aFormatOutFolder = fullfile(outputFolder,'A-Format');
 
 % Export data
 irMonoOutFolder = fullfile(irOutFolder,monoDir);
-outName = sprintf('%s-MONO', probeId);
+outName = sprintf('%s-MONO', acquisitionId);
 outMonoFile = exportAudio(irMonoTrim,fs,irMonoOutFolder,outName);
 fprintf('Exported: %s\n', outMonoFile);
 
 irBinOutFolder = fullfile(irOutFolder,binDir);
-outName = sprintf('%s-BIN', probeId);
+outName = sprintf('%s-BIN', acquisitionId);
 outBinFile = exportAudio(irBinTrim,fs,irBinOutFolder,outName);
 fprintf('Exported: %s\n', outBinFile);
 
-outName = sprintf('%s-Aformat', probeId);
+outName = sprintf('%s-Aformat', acquisitionId);
 outAformatFile = exportAudio(aFormat,fs,aFormatOutFolder,outName);
 fprintf('Exported: %s\n', outAformatFile);
 
 bFormatOutFolder = fullfile(irOutFolder,bFormatDir);
-outName = sprintf('%s-Bformat', probeId);
+outName = sprintf('%s-Bformat', acquisitionId);
 outBformatFile = exportAudio(bFormat,fs,bFormatOutFolder,outName);
 fprintf('Exported: %s\n', outBformatFile);
 
@@ -183,26 +189,26 @@ calcsMonoOutFolder = fullfile(calcsOutFolder,monoDir);
 if ~exist(calcsMonoOutFolder, 'dir')
     mkdir(calcsMonoOutFolder);
 end
-acouParProcess(outMonoFile,calcsMonoOutFolder,probeId,mode="omni");
+acouParProcess(outMonoFile,calcsMonoOutFolder,acquisitionId,mode="omni");
 
 % --- Binaural ---
 calcsBinOutFolder = fullfile(calcsOutFolder,binDir);
 if ~exist(calcsBinOutFolder, 'dir')
     mkdir(calcsBinOutFolder);
 end
-acouParProcess(outBinFile,calcsBinOutFolder,probeId,mode="bin");
+acouParProcess(outBinFile,calcsBinOutFolder,acquisitionId,mode="bin");
 
 % --- B-Format ---
 % WY ambix data is required for lateral fraction extraction with AcouPar
 wy_signals = irBformatTrim(:,[2,1]);
-wyFileName = sprintf("%s-WY",probeId);
+wyFileName = sprintf("%s-WY",acquisitionId);
 wyFile = exportAudio(wy_signals,fs,pwd,wyFileName);
 
 calcsBformatOutFolder = fullfile(calcsOutFolder,bFormatDir);
 if ~exist(calcsBformatOutFolder, 'dir')
     mkdir(calcsBformatOutFolder);
 end
-acouParProcess(wyFile,calcsBformatOutFolder,probeId,mode="wy");
+acouParProcess(wyFile,calcsBformatOutFolder,acquisitionId,mode="wy");
 
 delete(wyFile);
 

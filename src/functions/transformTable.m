@@ -1,9 +1,9 @@
-function parTb = transformTable(rawTb,concTb,probeName,options)
-% convert acouPar raw output in a structured and manageble table
+function newParTb = transformTable(rawTb,parTb,acquisitionId,options)
+% convert acouPar raw output in a structured table
 arguments
     rawTb table
-    concTb table = table
-    probeName cell = {}
+    parTb table = table     % parameter table to concatenate with
+    acquisitionId cell = {}
     options.type string
 end
     common_pars = {
@@ -98,23 +98,29 @@ end
     end
 
     % Initialize new table
-    varNames = [{'Filename', 'Parameter','Unit'}, bands];
-    varTypes = cellstr([repmat("string", 1, 3), ...
+    varNames = [{'PointId','AreaId','AcquisitionNo','TransducerType' ...
+        'Parameter','Unit'}, bands];
+    varTypes = cellstr([repmat("string", 1, 2), "double", ...
+        repmat("string", 1, 3), ...
         repmat("double",1,bandNo)]);
 
-    parTb = table('Size', [0, length(varNames)], ...
+    newParTb = table('Size', [0, length(varNames)], ...
         'VariableTypes', varTypes, 'VariableNames', varNames);
 
-    if ~isempty(concTb)
-        parTb = concTb;
-    end
-    if isempty(probeName)
-        probeName = rawTb.Filename;
+    if ~isempty(parTb)
+        newParTb = parTb;
     end
 
+    acquisitionData = split(acquisitionId,'-');
+    [pointId,areaId,acquisitionNo,transducerType] = acquisitionData{:};
+    acquisitionNo = str2double(acquisitionNo);
+
     for iPar = 1:parNo
-        parTb = [parTb;
-            probeName, pars(iPar), unit(iPar),...
-            num2cell(rawTb{:,2+(iPar-1)*bandNo:1+(iPar)*bandNo})];
+        fromColumn = 2+(iPar-1)*bandNo;
+        toColumn = 1+(iPar)*bandNo;
+        newParTb = [newParTb;
+            pointId,areaId,acquisitionNo,transducerType,...
+            pars(iPar), unit(iPar),...
+            num2cell(rawTb{:,fromColumn:toColumn})];
     end
 end
