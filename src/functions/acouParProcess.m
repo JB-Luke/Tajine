@@ -9,7 +9,7 @@ end
 irFileShort = ".." + extractAfter(irFile,pwd);
 
 if strcmp(options.mode,"omni")
-    outLabel = "MONO";
+    outLabel = "OMNI";
     orgTxtFile = 'acoupar_omni.txt';
 elseif strcmp(options.mode,"bin")
     outLabel = "BIN";

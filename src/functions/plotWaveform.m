@@ -15,12 +15,12 @@ else
     figure(options.figNum);
 end
 
-for ch = 1:nChannels
-    subplot(nChannels,1,ch);
-    plot((1:nSamples)/fs, audioData(:,ch));    
-    ylabel(sprintf('CH%i',ch));
+for iCh = 1:nChannels
+    subplot(nChannels,1,iCh);
+    plot((1:nSamples)/fs, audioData(:,iCh));    
+    ylabel(sprintf('CH%i',iCh));
     ylim([-maxAmp maxAmp]);
-    if ch == nChannels
+    if iCh == nChannels
         xlabel('Time [s]');
     end
 end

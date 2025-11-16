@@ -44,7 +44,7 @@ end
 
 append = options.append;
 
-paramSet.mono = ["C50","C80","D50","ts","EDT","T30"];
+paramSet.omni = ["C50","C80","D50","ts","EDT","T30"];
 paramSet.bin = ["IACC", "Tau IACC", "w IACC"];
 paramSet.bformat = ["Jlf", "Jlfc", "Lj"];
 
@@ -71,8 +71,8 @@ end
 
     function transducerType = getTransducerType(param,paramSet)
         % Return the proper transducer type based on the parameter required
-        if ismember(param,paramSet.mono)
-            transducerType = "MONO";
+        if ismember(param,paramSet.omni)
+            transducerType = "OMNI";
         elseif ismember(param,paramSet.bin)
             transducerType = "BIN";
         elseif ismember(param,paramSet.bformat)

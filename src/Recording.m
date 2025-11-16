@@ -1,46 +1,53 @@
-classdef Recording
+classdef Recording < AudioFile
     %RECORDING Summary of this class goes here
     %   Detailed explanation goes here
 
     properties
-        Name        string
-        FilePath    string
-        Data        double
-        Fs          double
+        PositionId      uint32 {mustBePositive} = uint32.empty(0,1)
+        PositionLabel   string {mustBeNonzeroLengthText} = string.empty(0,1)
+        AcquisitionNo   uint32 {mustBePositive} = uint32.empty(0,1)
+        AreaLabel       string                  = string.empty(0,1)
     end
 
-    properties (Access=private)
-        ReadFcn function_handle
+    properties (Dependent)
+        AcquisitionString
     end
 
     methods
-        function obj = Recording(options)
+        function obj = Recording(inputFile,options)
             %RECORDING Construct an instance of this class
             %   Detailed explanation goes here
             arguments
-                options.readFcn (1,1)
+                inputFile           string = string.empty(0,1)
+                options.logger 
+                options.audioFileIO
             end
 
-            if isfield(options,'readFcn')
-                obj.ReadFcn = options.readFcn;
-            else
-                obj.ReadFcn = @audioread;
+            opts = [fieldnames(options) struct2cell(options)]';
+            opts = opts(:)';
+            
+            obj@AudioFile(inputFile,opts{:})
+        end
+
+        function value = get.AcquisitionString(obj)
+
+            value = "p" + num2str(obj.PositionId) + "-" ...
+                + obj.PositionLabel + "-" ...
+                + num2str(obj.AcquisitionNo);
+
+            areaLb = obj.AreaLabel;
+            if ~isempty(areaLb) && ~ismissing(areaLb) ...
+                    && strlength(areaLb) > 1
+                value = value + "-" + areaLb;
             end
         end
 
-        function obj = load(obj,inputFile)
-            %LOAD Summary of this method goes here
-            %   Detailed explanation goes here
-            fprintf("Loading audio file: %s\n", inputFile);
-            
-            [obj.Data, obj.Fs] = obj.ReadFcn(inputFile);
-            obj.FilePath = inputFile;
-
-            [nSamples, nChannels] = size(obj.Data);
-
-            fprintf('Samples: %d\tChannels: %d\t Sample rate: %d Hz\n', ...
-                nSamples, nChannels, obj.Fs);
-
+        function obj = setInfo(obj,info)
+            %SETINFO Assign recording informations to properties
+            obj.PositionId      = info.positionId;
+            obj.PositionLabel   = info.positionLabel;
+            obj.AcquisitionNo   = info.acquisitionNo;
+            obj.AreaLabel       = info.areaLabel;
         end
     end
 end
