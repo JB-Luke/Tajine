@@ -112,7 +112,7 @@ end
     end
 
     acquisitionData = split(acquisitionId,'-');
-    [pointId,areaId,acquisitionNo,transducerType] = acquisitionData{:};
+    [pointId,~,acquisitionNo,areaId,transducerType] = acquisitionData{:};
     acquisitionNo = str2double(acquisitionNo);
 
     for iPar = 1:parNo

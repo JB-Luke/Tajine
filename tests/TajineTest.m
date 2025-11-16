@@ -16,7 +16,7 @@ classdef (TestTags = {'Model','Unit','Tajine'}) TajineTest ...
             logger = utils.Logger("none");
 
             taj = Tajine(logger=logger);
-            tc.verifyEqual(taj.measureSiteName, "untitled-measurement-site")
+            tc.verifyEqual(taj.MeasureSiteName, "untitled-measurement-site")
         end
 
         function loadRecordingTest(tc)
@@ -25,8 +25,7 @@ classdef (TestTags = {'Model','Unit','Tajine'}) TajineTest ...
             % GIVEN
             logger = utils.Logger("none");
             inputFile = "test.file";
-            [recordingMock,recordingBehavior] = tc.createMock( ...
-                "AddedMethods","load");
+            [recordingMock,recordingBehavior] = tc.createMock(?interface.Recording);
 
             taj = Tajine(logger=logger,recording=recordingMock);
 
@@ -43,12 +42,10 @@ classdef (TestTags = {'Model','Unit','Tajine'}) TajineTest ...
             % GIVEN
             logger = utils.Logger("none");
             inputFile = "test.file";
-            [audiofileMock,audiofileBehavior] = tc.createMock( ...
-                "AddedMethods","load","AddedProperties","FilePath");
+            [audiofileMock,audiofileBehavior] = tc.createMock(?AudioFile);
 
             fHandle = @(audiofileMock, inputFile) setValueInMock(audiofileMock, inputFile);
 
-            when(audiofileBehavior.load(inputFile),AssignOutputs(audiofileMock))
             when(audiofileBehavior.load(inputFile), ...
                 Invoke(fHandle))
 

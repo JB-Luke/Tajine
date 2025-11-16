@@ -1,6 +1,5 @@
-classdef AudioFile
-    %AUDIOFILE Summary of this class goes here
-    %   Detailed explanation goes here
+classdef AudioFile < interface.AudioFile
+    %AUDIOFILE It represents audio data from a generic file
 
     properties
         FilePath    string
@@ -36,11 +35,11 @@ classdef AudioFile
             end
 
             if ~isempty(inputFile)
-                obj = obj.load(inputFile);
+                obj.load(inputFile);
             end
         end
 
-        function obj = load(obj,inputFile)
+        function load(obj,inputFile)
             %LOAD Summary of this method goes here
             %   Detailed explanation goes here
             arguments

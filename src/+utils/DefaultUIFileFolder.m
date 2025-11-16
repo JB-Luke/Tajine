@@ -1,8 +1,8 @@
 classdef DefaultUIFileFolder < interface.UIFileFolder
     
     methods
-        function [file,folder,status] = chooseFile(~,varargin)
-            [file,folder,status] = uigetfile(varargin{:});
+        function [file,folder,indx] = chooseFile(~,varargin)
+            [file,folder,indx] = uigetfile(varargin{:});
         end
 
         function [file,location,indx] = placeFile(~,varargin)

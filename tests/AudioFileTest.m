@@ -56,7 +56,7 @@ classdef (TestTags = {'Model','Unit','AudioFile'}) ...
                 AssignOutputs(audioData,fs));
             
             % WHEN
-            audioFile = audioFile.load(filePath);
+            audioFile.load(filePath);
             
             % THEN
             tc.verifyEqual(audioFile.FilePath,filePath)

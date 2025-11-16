@@ -1,19 +1,21 @@
-classdef Tajine < handle
+classdef Tajine < interface.Tajine
     %TAJINE Summary of this class goes here
     %   Detailed explanation goes here
 
     properties
-        measureSiteName
-        outputFolder
+        MeasureSiteName
+        OutputFolder
         Recording
         InverseSweep
     end
 
-    properties (Access=private)
+    properties (Access=protected)
         Log
     end
 
     methods
+        process(obj);
+
         function obj = Tajine(options)
             %TAJINE Construct an instance of this class
             %   Detailed explanation goes here
@@ -29,17 +31,17 @@ classdef Tajine < handle
             displayVersion(obj);
 
             % Set default values
-            obj.measureSiteName = "untitled-measurement-site";
+            obj.MeasureSiteName = "untitled-measurement-site";
         end
 
         function obj = loadRecording(obj,inputFile)
             %LOADRECORDING Load audio from recording audio file
-            obj.Recording = obj.Recording.load(inputFile);
+            obj.Recording.load(inputFile);
         end
 
         function obj = loadInverseSweep(obj,inputFile)
             %LOADINVERSESWEEP 
-            obj.InverseSweep = obj.InverseSweep.load(inputFile);
+            obj.InverseSweep.load(inputFile);
         end
         
     end

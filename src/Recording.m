@@ -1,12 +1,11 @@
-classdef Recording < AudioFile
-    %RECORDING Summary of this class goes here
-    %   Detailed explanation goes here
+classdef Recording < interface.Recording & AudioFile
+    %RECORDING It represents audio data of a single acquisition
 
     properties
-        PositionId      uint32 {mustBePositive} = uint32.empty(0,1)
-        PositionLabel   string {mustBeNonzeroLengthText} = string.empty(0,1)
-        AcquisitionNo   uint32 {mustBePositive} = uint32.empty(0,1)
-        AreaLabel       string                  = string.empty(0,1)
+        PositionId      = uint32(1)
+        PositionLabel   = "position1"
+        AcquisitionNo   = uint32(1)
+        AreaLabel       = ""
     end
 
     properties (Dependent)
@@ -16,7 +15,6 @@ classdef Recording < AudioFile
     methods
         function obj = Recording(inputFile,options)
             %RECORDING Construct an instance of this class
-            %   Detailed explanation goes here
             arguments
                 inputFile           string = string.empty(0,1)
                 options.logger 
