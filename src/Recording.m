@@ -29,15 +29,10 @@ classdef Recording < interface.Recording & AudioFile
 
         function value = get.AcquisitionString(obj)
 
-            value = "p" + num2str(obj.PositionId) + "-" ...
-                + obj.PositionLabel + "-" ...
-                + num2str(obj.AcquisitionNo);
-
-            areaLb = obj.AreaLabel;
-            if ~isempty(areaLb) && ~ismissing(areaLb) ...
-                    && strlength(areaLb) > 1
-                value = value + "-" + areaLb;
-            end
+            value = "p" + num2str(obj.PositionId) ...
+                + "-" + obj.PositionLabel ...
+                + "-" + num2str(obj.AcquisitionNo)...
+                + "-" + obj.AreaLabel;
         end
 
         function obj = setInfo(obj,info)

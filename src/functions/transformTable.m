@@ -113,7 +113,9 @@ end
 
     acquisitionData = split(acquisitionId,'-');
     [pointId,~,acquisitionNo,areaId,transducerType] = acquisitionData{:};
+    
     acquisitionNo = str2double(acquisitionNo);
+    if isempty(areaId); areaId = cellstr(areaId); end
 
     for iPar = 1:parNo
         fromColumn = 2+(iPar-1)*bandNo;
