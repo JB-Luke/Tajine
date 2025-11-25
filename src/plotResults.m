@@ -1,4 +1,4 @@
-function figureSet = plotResults(parTb,plotTitle,figureSet)
+function figureSet = plotResults(parTb,plotTitle,figureSet,options)
 %%PLOTRESULTS set generation %
 % It generates a set figure given a specific table and a set of filters.
 %
@@ -7,6 +7,7 @@ arguments
     parTb              % parameter table
     plotTitle
     figureSet
+    options.zyliaPlotSet    logical = false
 end
 
 acquisitionId = unique(parTb(:,{'PointId','AcquisitionNo'}));
@@ -21,7 +22,7 @@ for iAcq = 1:height(acquisitionId)
     acquisitionNo = acquisitionId{iAcq,'AcquisitionNo'};
 
     figureSet = createFigures(parTb,pointId,acquisitionNo,plotTitle, ...
-        append=appendPlot,figureSet=figureSet);
+        append=appendPlot,figureSet=figureSet,zyliaPlotSet=options.zyliaPlotSet);
 end
 
 end
@@ -34,6 +35,7 @@ arguments
     plotTitle
     options.figureSet
     options.append = false
+    options.zyliaPlotSet = false
 end
 
 if isfield(options,'figureSet')
@@ -46,7 +48,7 @@ append = options.append;
 
 paramSet.omni = ["C50","C80","D50","ts","EDT","T30"];
 paramSet.bin = ["IACC", "Tau IACC", "w IACC"];
-paramSet.bformat = ["Jlf", "Jlfc", "Lj"];
+paramSet.wy = ["Jlf", "Jlfc", "Lj"];
 
 allParam = struct2array(paramSet);
 
@@ -55,6 +57,11 @@ for iPar = 1:length(allParam)
 
     transducerType = getTransducerType(param,paramSet);
 
+    % Skip binaural figures if zylia processing
+    if options.zyliaPlotSet && strcmp(transducerType,"BIN")
+        continue
+    end
+    
     parTb_filt = filterParTb(parTb,param,pointId,acquisitionNo,transducerType);
 
     [yData,xData,unit] = getCurveData(parTb_filt);
@@ -75,8 +82,8 @@ end
             transducerType = "OMNI";
         elseif ismember(param,paramSet.bin)
             transducerType = "BIN";
-        elseif ismember(param,paramSet.bformat)
-            transducerType = "BFormat";
+        elseif ismember(param,paramSet.wy)
+            transducerType = "WY";
         end
     end
 
@@ -169,7 +176,7 @@ end
 figure(fig);
 
 grid on
-xlim([125 8000]);
+xlim([125 4000]);
 ylabel(unit)
 xlabel("Freq. [Hz]")
 title(parName + " - " + plotTitle);

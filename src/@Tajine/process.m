@@ -72,11 +72,11 @@ fprintf('\n✅ Wrap-up Excel file generated.\n\n\n');
 %% Plot
 % Generate dedicated figures for each Acoustic parameter. 
 % Add different curve for each probe
-if ~exist("figureSet","var")
-    figureSet = gobjects(12,1);
+if isempty(obj.figureSet) || any(~isvalid(obj.figureSet))
+    obj.figureSet = gobjects(12,1);
 end
 
-figureSet = plotResults(parTb,obj.MeasureSiteName,figureSet);
+obj.figureSet = plotResults(parTb,obj.MeasureSiteName,obj.figureSet);
 
 fprintf('✅ Plot generation complete.\n\n');
 

@@ -15,7 +15,7 @@ elseif strcmp(options.mode,"bin")
     outLabel = "BIN";
     orgTxtFile = 'acoupar_BIN.txt';
 elseif strcmp(options.mode,"wy")
-    outLabel = "BFormat";
+    outLabel = "WY";
     orgTxtFile = 'acoupar_WY.txt';
 else
     error("AcouPar elaboration mode not recognized")

@@ -114,6 +114,7 @@ end
     acquisitionData = split(acquisitionId,'-');
     [pointId,~,acquisitionNo,areaId,transducerType] = acquisitionData{:};
     
+    if isempty(pointId); pointId = cellstr(pointId); end
     acquisitionNo = str2double(acquisitionNo);
     if isempty(areaId); areaId = cellstr(areaId); end
 

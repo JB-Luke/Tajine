@@ -12,7 +12,7 @@ classdef (TestTags = {'Model','Unit','Tajine'}) TajineTest ...
     methods (Test)
         % Test methods
 
-        function untitledTest(tc)
+        function defaultSiteTest(tc)
             logger = utils.Logger("none");
 
             taj = Tajine(logger=logger);

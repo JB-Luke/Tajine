@@ -7,6 +7,8 @@ classdef Tajine < interface.Tajine
         OutputFolder
         Recording
         InverseSweep
+
+        figureSet
     end
 
     properties (Access=protected)

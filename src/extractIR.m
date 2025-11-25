@@ -21,7 +21,7 @@ enNoiseFilt = filter(b, 1, en);
 %% Binaural
 channels = transducers.binaural.channels;
 [ir.binaural.full,peakValBin] = deconvolve(recSweep.Data(:,channels),invSweep.Data);
-ir.binaural.trimmed = trimIR(ir.binaural.full,fs,preDly,irLength);
+ir.binaural.trimmed = trimIR(ir.binaural.full,fs,preDly,irLength,maxIdx=peakIdxOmni);
 
 fprintf('Applied rescaling gain: %.2f dB to BINAURAL signal\n', ...
     20*log10(1/peakValBin));
@@ -38,14 +38,20 @@ aFormat = recSweep.Data(:,channels);
 bformatConvPlugin.setMaxSamplesPerFrame(length(recSweep.Data));
 bFormat = process(bformatConvPlugin,aFormat);
 
-[ir.bFormat.full,peakValBin] = deconvolve(bFormat,invSweep.Data);
-ir.bFormat.trimmed = trimIR(ir.bFormat.full,fs,preDly,irLength);
+[ir.bFormat.full,peakValBformat] = deconvolve(bFormat,invSweep.Data);
+ir.bFormat.trimmed = trimIR(ir.bFormat.full,fs,preDly,irLength,maxIdx=peakIdxOmni);
+
+fprintf('Applied rescaling gain: %.2f dB to B-FORMAT signal\n', ...
+    20*log10(1/peakValBformat));
+
+%% Plot
 
 plotIR(ir,peakIdxOmni,enNoiseFilt,enNoise,fs)
 
 fprintf('\n✅ Impulse Responses generated.\n\n\n');
 
 end
+
 
 function plotIR(ir,peakIdxMono,enNoiseFilt,enNoise,fs)
 

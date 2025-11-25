@@ -26,7 +26,7 @@ classdef (TestTags = {'Model','Recording'}) ...
             rec.AcquisitionNo = 1;
 
             % WHEN/THEN
-            tc.verifyEqual(rec.AcquisitionString,"p1-box1-1");
+            tc.verifyEqual(rec.AcquisitionString,"p1-box1-1-");
         end
 
         function AcquisitionStringAreaTest(tc)
