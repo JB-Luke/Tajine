@@ -198,5 +198,19 @@ classdef (TestTags = {'GUI','Unit','TajineApp'}) ...
             tc.verifyCalled(withExactInputs(tc.behavior.model.process));
             tc.clearMockHistory(tc.mock.model)
         end
+
+        function exportFiguresTest(tc)
+            import matlab.mock.actions.*
+
+            % GIVEN
+            %
+
+            % WHEN
+            tc.press(tc.app.SaveFiguresButton)
+
+            % THEN
+            tc.verifyCalled(withExactInputs(tc.behavior.model.exportFigures));
+            tc.clearMockHistory(tc.mock.model)
+        end
     end
 end

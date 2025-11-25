@@ -13,6 +13,7 @@ classdef Tajine < interface.Tajine
 
     properties (Access=protected)
         Log
+        FigureIO
     end
 
     methods
@@ -26,6 +27,7 @@ classdef Tajine < interface.Tajine
                 options.logger
                 options.recording
                 options.audiofile
+                options.figureIO
             end
 
             parseConstructorArguments(obj,options);
@@ -36,16 +38,31 @@ classdef Tajine < interface.Tajine
             obj.MeasureSiteName = "untitled-measurement-site";
         end
 
-        function obj = loadRecording(obj,inputFile)
+        function loadRecording(obj,inputFile)
             %LOADRECORDING Load audio from recording audio file
             obj.Recording.load(inputFile);
         end
 
-        function obj = loadInverseSweep(obj,inputFile)
+        function loadInverseSweep(obj,inputFile)
             %LOADINVERSESWEEP 
             obj.InverseSweep.load(inputFile);
         end
-        
+
+        function exportFigures(obj)
+            figOutFolder = fullfile(obj.OutputFolder,"calcs","figures");
+            if ~isfolder(figOutFolder)
+                mkdir(figOutFolder);
+            end
+
+            for iFig = 1:length(obj.figureSet)
+                figHandle = obj.figureSet(iFig);
+                if ~ishghandle(figHandle); continue; end
+                figOutName = figHandle.Name;
+                figOutFile = fullfile(figOutFolder,figOutName+".fig");
+                obj.FigureIO.saveto(figHandle,figOutFile);
+            end
+        end
+
     end
 
     methods (Access = private)
@@ -67,6 +84,12 @@ classdef Tajine < interface.Tajine
                 obj.InverseSweep = options.audiofile;
             else
                 obj.InverseSweep = AudioFile();
+            end
+
+            if isfield(options,"figureIO")
+                obj.FigureIO = options.figureIO;
+            else
+                obj.FigureIO = utils.DefaultFigureIO();
             end
         end
 

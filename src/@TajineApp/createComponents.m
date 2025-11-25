@@ -134,12 +134,14 @@ app.InverseSweepFileLabel.Text = 'empty';
 % Create ProcessButton
 app.ProcessButton = uibutton(app.InputTab, 'push');
 app.ProcessButton.ButtonPushedFcn = createCallbackFcn(app, @ProcessButtonPushed, true);
-app.ProcessButton.Position = [171 32 100 23];
+app.ProcessButton.Position = [173 31 100 23];
 app.ProcessButton.Text = 'Process';
 
-% Create ProcessTab
-app.ProcessTab = uitab(app.TabGroup);
-app.ProcessTab.Title = 'Process';
+% Create SaveFiguresButton
+app.SaveFiguresButton = uibutton(app.InputTab, 'push');
+app.SaveFiguresButton.ButtonPushedFcn = createCallbackFcn(app, @SaveFiguresButtonPushed, true);
+app.SaveFiguresButton.Position = [321 30 100 23];
+app.SaveFiguresButton.Text = 'Save Figures';
 
 % Show the figure after all components are created
 app.UIFigure.Visible = 'on';

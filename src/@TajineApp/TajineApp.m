@@ -5,6 +5,7 @@ classdef TajineApp < matlab.apps.AppBase
         UIFigure                  matlab.ui.Figure
         TabGroup                  matlab.ui.container.TabGroup
         InputTab                  matlab.ui.container.Tab
+        SaveFiguresButton         matlab.ui.control.Button
         ProcessButton             matlab.ui.control.Button
         InversesweepPanel         matlab.ui.container.Panel
         GridLayout2               matlab.ui.container.GridLayout
@@ -24,7 +25,6 @@ classdef TajineApp < matlab.apps.AppBase
         PositionIDSpinner         matlab.ui.control.Spinner
         PositionIDSpinnerLabel    matlab.ui.control.Label
         RecordingFileLabel        matlab.ui.control.Label
-        ProcessTab                matlab.ui.container.Tab
         TajineLabel               matlab.ui.control.Label
     end
 
@@ -92,6 +92,11 @@ classdef TajineApp < matlab.apps.AppBase
         % Button pushed function: ProcessButton
         function ProcessButtonPushed(app, event)
             app.model.process();
+        end
+
+        % Button pushed function: SaveFiguresButton
+        function SaveFiguresButtonPushed(app, event)
+            app.model.exportFigures();
         end
     end
 

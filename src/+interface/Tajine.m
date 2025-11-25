@@ -16,5 +16,6 @@ classdef Tajine < handle
         loadRecording(obj,inputFile)
         loadInverseSweep(obj,inputFile)
         process(obj)
+        exportFigures(obj)
     end    
 end
