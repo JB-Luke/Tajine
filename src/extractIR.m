@@ -1,4 +1,13 @@
-function [ir,aFormat] = extractIR(recSweep,invSweep,transducers,preDly,irLength,pluginPath)
+function [ir,aFormat] = extractIR(recSweep,invSweep,transducers,preDly,irLength,pluginPath,options)
+arguments
+    recSweep
+    invSweep
+    transducers
+    preDly
+    irLength
+    pluginPath
+    options.Convert2BFormat = true
+end
 
 fs = recSweep.Fs;
 
@@ -28,16 +37,29 @@ fprintf('Applied rescaling gain: %.2f dB to BINAURAL signal\n', ...
 
 %% B-format
 % Convert A-Format to B-Format Ambisonics with external plugin
-bformatConvPlugin = loadAudioPlugin(pluginPath);
-bformatConvPlugin.CoincidenceFilter = "off";
-bformatConvPlugin.Position = 'Endfire';
+channels = transducers.bFormat.channels;
+
+if options.Convert2BFormat
+    aFormat = recSweep.Data(:,channels);
+
+    % Load and setup plugin
+    bformatConvPlugin = loadAudioPlugin(pluginPath);
+    bformatConvPlugin.CoincidenceFilter = "off";
+    bformatConvPlugin.Position = 'Endfire';
+    bformatConvPlugin.setMaxSamplesPerFrame(16384);
+
+    audioSrc = dsp.SignalSource(aFormat, SamplesPerFrame=16384);
+
+    bFormat = [];
+    while(~audioSrc.isDone)
+        bFormat = [bFormat; bformatConvPlugin.process(audioSrc())];
+    end
+else
+    aFormat = [];
+    bFormat = recSweep.Data(:,channels);
+end
 
 % Deconvolve
-channels = transducers.bFormat.channels;
-aFormat = recSweep.Data(:,channels);
-bformatConvPlugin.setMaxSamplesPerFrame(length(recSweep.Data));
-bFormat = process(bformatConvPlugin,aFormat);
-
 [ir.bFormat.full,peakValBformat] = deconvolve(bFormat,invSweep.Data);
 ir.bFormat.trimmed = trimIR(ir.bFormat.full,fs,preDly,irLength,maxIdx=peakIdxOmni);
 

@@ -43,8 +43,12 @@ fprintf('\n✅ Impulse Responses exported.\n\n\n');
 
 %% Compute acoustic parameters with acouPar
 % Export temporary W and WY IR files for AcouPar elaboration
-irOmniFile = exportAudio(ir.trimmed(:,1),recSweep.Fs,pwd,fullOutName+"-W");
-irWYFile = exportAudio(ir.trimmed(:,1:2),recSweep.Fs,pwd,fullOutName+"-WY");
+irOmni = ir.trimmed(:,1);
+irWY = ir.trimmed(:,1:2);
+fs = recSweep.Fs;
+
+irOmniFile = exportAudio(irOmni,fs,pwd,fullOutName+"-W");
+irWYFile = exportAudio(irWY,fs,pwd,fullOutName+"-WY");
 
 omniOutFolder = fullfile(outputFolder,"OMNI");
 WYOutFolder = fullfile(outputFolder,"WY");

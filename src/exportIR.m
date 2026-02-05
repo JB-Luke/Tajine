@@ -16,10 +16,14 @@ outFile.binaural = exportAudio(audioData,fs,outputFolder,fullOutName);
 fprintf('Exported: %s\n', outFile.binaural);
 
 % A-Format audio
-aFormatOutFolder = fullfile(outputFolder,'A-Format');
-fullOutName = sprintf('%s-Aformat', outName);
-outFile.aFormat = exportAudio(aFormat,fs,aFormatOutFolder,fullOutName);
-fprintf('Exported: %s\n', outFile.aFormat);
+if ~isempty(aFormat)
+    aFormatOutFolder = fullfile(outputFolder,'A-Format');
+    fullOutName = sprintf('%s-Aformat', outName);
+    outFile.aFormat = exportAudio(aFormat,fs,aFormatOutFolder,fullOutName);
+    fprintf('Exported: %s\n', outFile.aFormat);
+else
+    fprintf('No A-Format available for exporting.\n');
+end
 
 % B-Format IR
 fullOutName = sprintf('%s-Bformat', outName);
