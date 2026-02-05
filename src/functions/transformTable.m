@@ -91,7 +91,7 @@ end
 
     % Deal with exception values
     for iCol = 2:width(rawTb)
-        if strcmp(rawTb{1,iCol},'--')
+        if strcmp(rawTb{1,iCol},'--') || iscell(rawTb{1,iCol})
             varName = rawTb(1,iCol).Properties.VariableNames;
             rawTb.(varName{1,1}) = NaN;
         end
